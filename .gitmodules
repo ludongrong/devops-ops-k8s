@@ -1,0 +1,6 @@
+[submodule "kubernetes-submodule/kubernetes-cluster-install"]
+	path = kubernetes-submodule/kubernetes-cluster-install
+	url = https://github.com/opsnull/follow-me-install-kubernetes-cluster.git
+[submodule "kubernetes-submodule/kubernetes-ansible"]
+	path = kubernetes-submodule/kubernetes-ansible
+	url = https://github.com/ctienshi/kubernetes-ansible
