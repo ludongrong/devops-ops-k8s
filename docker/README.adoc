@@ -1,4 +1,4 @@
-= dockre
+= docker
 Author 卢冬榕
 :doctype: article
 :encoding: utf-8
@@ -7,82 +7,72 @@ Author 卢冬榕
 :numbered:
 
 
-= docker
+= Docker
 
-== `docker` 是什么？
+== `Docker` 是什么？
 
-Docker is an open platform for developing, shipping, and running applications.
-
-[NOTE]
-====
-https://docs.docker.com/get-started/overview/
-====
-
-- 代码托管
-
-https://github.com/docker/docker-ce
-
-=== `docker` 具备哪些解决能力？
-
-Docker provides the ability to package and run an application in a loosely isolated environment called a container.
+`Docker` 是一个用于开发，交付和运行应用程序的开放平台。 `Docker` 提供了在松散隔离的环境中打包和运行应用程序的功能。这个环境称为 `容器`。
 
 [NOTE]
 ====
 https://docs.docker.com/get-started/overview/
 ====
 
-==== 什么是 '容器'？
+- 代码托管 - https://github.com/docker/docker-ce
+- CLI - https://docs.docker.com/engine/reference/commandline/push/
 
-Containers are an abstraction at the app layer that packages code and dependencies together. Multiple containers can run on the same machine and share the OS kernel with other containers, each running as isolated processes in user space.
+=== `容器` 是什么？
+
+容器是应用程序层的一种抽象，它将代码和依赖项打包在一起。多个容器可以运行在同一台机器上，并与其他容器共享操作系统内核，每个容器作为用户空间中的独立进程运行。
 
 [NOTE]
 ====
 https://www.docker.com/resources/what-container
 ====
 
-=== `docker` 的工作原理是什么？
+=== `Docker` 的原理
 
-Docker uses a client-server architecture. The Docker client and daemon communicate using a REST API, over UNIX sockets or a network interface.
+Docker使用客户端-服务器架构。Docker客户端和守护进程通过UNIX套接字或网络接口使用REST API进行通信。
 
-image::./README/architecture.png[align="center"]
+image::./README/2021-05-06_08-54-01.png[align="center"]
 
-== 搭建 `docker` 环境
+== 搭建 `Docker` 环境
 
-=== 下载 `docker`
+=== 下载 `Docker`
 
 [NOTE]
 ====
 https://www.docker.com/products/container-runtime
 ====
 
-image::./README/20201112223011.png[align="center"]
+image::./README/2021-05-06_08-54-02.png[align="center"]
 
-image::./README/20201112223012.png[align="center"]
+image::./README/2021-05-06_08-54-03.png[align="center"]
 
-==== 下载 `Ubuntu` 版 `docker`
+==== 下载 `Ubuntu` 版 `Docker`
 
 [NOTE]
 ====
 https://hub.docker.com/search?q=&type=edition&offering=community
 ====
 
-image::./README/20201112223013.png[align="center"]
+image::./README/2021-05-06_08-54-04.png[align="center"]
 
 [NOTE]
 ====
 https://hub.docker.com/editions/community/docker-ce-server-ubuntu
 ====
 
-image::./README/20201112223014.png[align="center"]
+image::./README/2021-05-06_08-54-05.png[align="center"]
 
-==== 下载 `Centos` 版 `docker`
+==== 下载 `Centos` 版 `Docker`
 
 [NOTE]
 ====
 https://docs.docker.com/engine/install/centos/
 ====
 
-image::./README/20201112223015.png[align="center"]
+image::./README/2021-05-06_08-54-06.png[align="center"]
 
 ==== 下载 `Docker` 的 `binaries`
 
@@ -91,14 +81,14 @@ image::./README/20201112223015.png[align="center"]
 https://docs.docker.com/engine/install/binaries/
 ====
 
-image::./README/20201112223016.png[align="center"]
-
-[source,]
+[source,sh]
 ----
 wget https://download.docker.com/linux/static/stable/x86_64/docker-18.09.6.tgz
 ----
 
-=== 安装 `docker`
+image::./README/2021-05-06_08-54-07.png[align="center"]
+
+=== 安装 `Docker`
 
 推荐您在Ubuntu下面安装，因为docker是在Ubuntu下面开发的，安装包测试比较充分，可以保证软件包的可用性。
 
@@ -118,7 +108,7 @@ https://docs.docker.com/engine/install/ubuntu/
 
 ==== 在 `ubuntu-18.04` 上通过 `apt` 安装 `18.09.6`
 
-推荐通过 `repository` 安装，方便安装和升级的有点。
+推荐通过 `repository` 安装，方便安装和升级的优点。
 
 [NOTE]
 ====
@@ -229,7 +219,7 @@ Created symlink /etc/systemd/system/multi-user.target.wants/docker.service → /
 Created symlink /etc/systemd/system/sockets.target.wants/docker.socket → /lib/systemd/system/docker.socket.
 ----
 
-== 维护 `某某` 环境
+== 维护 `Docker` 环境
 
 === manage docker as a non-root user.
 
@@ -281,7 +271,7 @@ https://cr.console.aliyun.com/cn-hangzhou/instances/mirrors
 
 https://5vewth3y.mirror.aliyuncs.com
 
-image::./README/20201112223017.png[align="center"]
+image::./README/2021-05-06_08-54-08.png[align="center"]
 
 验证镜像地址的可用性
 
@@ -308,11 +298,14 @@ $ sudo netstat -lntp | grep dockerd
 $ systemctl status docker
 ----
 
+[source,sh]
+----
 docker.service - Docker Application Container Engine
 
-   Loaded: loaded (/lib/systemd/system/docker.service; enabled; vendor preset: disabled)
+Loaded: loaded (/lib/systemd/system/docker.service; enabled; vendor preset: disabled)
 
-   Active: active (running) since 日 2018-05-13 10:02:21 CST; 14min ago
+Active: active (running) since 日 2018-05-13 10:02:21 CST; 14min ago
+----
 
 [source,sh]
 ----
@@ -717,21 +710,18 @@ $ sudo systemctl daemon-reload
 $ sudo systemctl restart docker.service
 ----
 
-==== login >> harbor
+==== 登录 `harbor`
+
+https://docs.docker.com/engine/security/certificates/
 
 [source,sh]
 ----
-$ docker login 192.168.41.32
+$ docker login -u admin -p Harbor12345 192.168.41.32
 ----
 
-[source,text]
-----
-Username: admin
+==== 登录 `nexus`
 
-Password:
-----
-
-==== login >> nexus
+https://docs.docker.com/engine/security/certificates/
 
 group仓库
 
@@ -752,19 +742,6 @@ $ docker login -u admin -p admin123 192.168.41.33:8083
 [source,sh]
 ----
 $ docker pull 192.168.41.33:8082/hello-world
-----
-
-[source,text]
-----
-Using default tag: latest
-
-latest: Pulling from hello-world
-
-Digest: sha256:90659bf80b44ce6be8234e6ff90a1ac34acbeb826903b02cfa0da11c82cbc042
-
-Status: Downloaded newer image for 192.168.41.33:8082/hello-world:latest
-
-192.168.41.33:8082/hello-world:latest
 ----
 
 **访问私有仓库 >>错误**
@@ -1224,238 +1201,19 @@ $ docker stop/start/kill/restart /rm 容器名字或者ID
 $ docker stop amazing_cori
 ----
 
-== 使用 `docker`
+== 使用 `Docker`
 
-=== 制作镜像
-
-[source,sh]
-----
-$ mkdir dockerfile/jdk8
-$ tee dockerfile <<-'EOF'
-FROM ubuntu:latest
-COPY jdk1.8.0_45 /usr/local
-ENV JAVA_HOME /usr/local/jdk1.8.0_45
-EOF
-
-$ cd dockerfile/jdk8
-$ cat dockerfile
-$ docker build -t jdk8:fjnsn .
-----
-
-==== 环境变量 >> ENV
-
-[source,sh]
-----
-ENV <key> <value>
-ENV <key1>=<value1> <key2>=<value2>...
-----
-
-以下示例设置 NODE_VERSION = 7.2.0，在后续的指令中可以通过 $NODE_VERSION 引用：
-
-[source,sh]
-----
-ENV NODE_VERSION 7.2.0
-RUN curl -SLO "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-x64.tar.xz" \
- && curl -SLO "https://nodejs.org/dist/v$NODE_VERSION/SHASUMS256.txt.asc"
-----
-
-==== 环境变量 >> ARG
-
-构建参数，与 ENV 作用一至。不过作用域不一样。ARG 设置的环境变量仅对 Dockerfile 内有效，也就是说只有 docker build 的过程中有效，构建好的镜像内不存在此环境变量。
-
-构建命令 docker build 中可以用 --build-arg <参数名>=<值> 来覆盖。
-
-[source,sh]
-----
-ARG <参数名>[=<默认值>]
-----
-
-==== 环境变量 >> FROM
-
-[source,sh]
-----
-FROM <镜像名称>
-----
-
-==== 复制 >>  COPY
-
-[source,sh]
-----
-COPY [--chown=<user>:<group>] <源路径1>... <目标路径>
-COPY [--chown=<user>:<group>] ["<源路径1>",... "<目标路径>"
-----
-
-[source,sh]
-----
-COPY hom* /mydir/
-COPY hom?.txt /mydir/
-----
-
-通配符规则要满足 Go 的 filepath.Match 规则
-
-==== 复制 >> ADD
-
-ADD 指令和 COPY 的使用格式一致（同样需求下，官方推荐使用 COPY）。功能也类似，不同之处如下：
-
-- ADD 的优点：在执行 <源文件> 为 tar 压缩文件的话，压缩格式为 gzip, bzip2 以及 xz 的情况下，会自动复制并解压到 <目标路径>。
-- ADD 的缺点：在不解压的前提下，无法复制 tar 压缩文件。会令镜像构建缓存失效，从而可能会令镜像构建变得比较缓慢。具体是否使用，可以根据是否需要自动解压来决定。
-
-==== RUN
-
-RUN 是在 docker build。控制RUN次数，避免镜像膨胀。
-
-[source,sh]
-----
-RUN ["可执行文件", "参数1", "参数2"]
-----
-
-样例
-
-[source,sh]
-----
-RUN ["./test.php", "dev", "offline"] 等价于 RUN ./test.php dev offline
-----
-
-<命令行命令> 等同于，在终端操作的 shell 命令。
-
-[source,]
-----
-RUN yum install wget \
-  && wget -O redis.tar.gz "http://download.redis.io/releases/redis-5.0.3.tar.gz" \
-  && tar -xvf redis.tar.gz
-----
-
-==== CMD
-
-CMD 在docker run 时运行。如果存在多个 CMD 指令，仅最后一个生效。CMD 指令指定的程序可被 docker run 命令行参数中指定要运行的程序所覆盖。
-
-[source,]
-----
-CMD <shell 命令> 
-CMD ["<可执行文件或命令>","<param1>","<param2>",...] 
-CMD ["<param1>","<param2>",...] 
-----
-
-==== ENTRYPOINT
-
-类似于 CMD 指令，但其不会被 docker run 的命令行参数指定的指令所覆盖，而且这些命令行参数会被当作参数送给 ENTRYPOINT 指令指定的程序。但是, 如果运行 docker run 时使用了 --entrypoint 选项，此选项的参数可当作要运行的程序覆盖 ENTRYPOINT 指令指定的程序。
-
-- 优点：在执行 docker run 的时候可以指定 ENTRYPOINT 运行所需的参数。
-
-注意：如果 Dockerfile 中如果存在多个 ENTRYPOINT 指令，仅最后一个生效。
-
-[source,]
-----
-ENTRYPOINT ["nginx", "-c"] # 定参
-CMD ["/etc/nginx/nginx.conf"] # 变参 
-----
-
-[source,]
-----
-# 不传参运行
-$ docker run nginx:test
-
-# 容器内会默认运行以下命令，启动主进程。
-$ nginx -c /etc/nginx/nginx.conf
-
-# 传参运行
-$ docker run nginx:test -c /etc/nginx/new.conf
-
-# 容器内会默认运行以下命令，启动主进程(/etc/nginx/new.conf:假设容器内已有此文件)
-$ nginx -c /etc/nginx/new.conf
-
-ENTRYPOINT ["<executeable>","<param1>","<param2>",...]
-
-- 该写法是为 ENTRYPOINT 指令指定的程序提供默认参数
-- 推荐使用第二种格式，执行过程比较明确。第一种格式实际上在运行的过程中也会自动转换成第二种格式运行，并且默认可执行文件是 sh。
-
-FROM nginx
-
-ENTRYPOINT ["nginx", "-c"] # 定参
-
-CMD ["/etc/nginx/nginx.conf"] # 变参 
-----
-
-==== 数据卷
-
-定义匿名数据卷。在启动容器时忘记挂载数据卷，会自动挂载到匿名卷。作用：避免重要的数据，因容器重启而丢失，这是非常致命的。避免容器不断变大。
-
-格式：
-
-[source,sh]
-----
-VOLUME ["<路径1>", "<路径2>"...]
-VOLUME <路径>
-----
-
-在启动容器 docker run 的时候，我们可以通过 -v 参数修改挂载点。
-
-==== 声明端口
-
-帮助镜像使用者理解这个镜像服务的守护端口，以方便配置映射。在运行时使用随机端口映射时，也就是 docker run -P 时，会自动随机映射 EXPOSE 的端口。
-
-格式：
-
-[source,sh]
-----
-EXPOSE <端口1> [<端口2>...]
-----
-
-==== 工作目录
-
-指定工作目录。用 WORKDIR 指定的工作目录，会在构建镜像的每一层中都存在。（WORKDIR 指定的工作目录，必须是提前创建好的）。docker build 构建镜像过程中的，每一个 RUN 命令都是新建的一层。只有通过 WORKDIR 创建的目录才会一直存在。WORKDIR <工作目录路径>
-
-==== 指定执行后续命令的用户和用户组
-
-这边只是切换后续命令执行的用户（用户和用户组必须提前已经存在）。USER <用户名>[:<用户组>]
-
-==== 指定程序监控 docker 容器服务的运行状态
-
-[source,sh]
-----
-HEALTHCHECK [选项] CMD <命令>：设置检查容器健康状况的命令
-HEALTHCHECK NONE：如果基础镜像有健康检查指令，使用这行可以屏蔽掉其健康检查指令
-HEALTHCHECK [选项] CMD <命令> : 这边 CMD 后面跟随的命令使用，可以参考 CMD 的用法。
-ONBUILD
-----
-
-用于延迟构建命令的执行。简单的说，就是 Dockerfile 里用 ONBUILD 指定的命令，在本次构建镜像的过程中不会执行（假设镜像为 test-build）。当有新的 Dockerfile 使用了之前构建的镜像 FROM test-build ，这是执行新镜像的 Dockerfile 构建时候，会执行 test-build 的 Dockerfile 里的 ONBUILD 指定的命令。
-
-格式：
-
-ONBUILD <其它指令>
-
-==== 创建
-
-[source,]
-----
-docker build -t runoob/centos:6.7 .
-----
-
-- -t
-
-指定要创建的目标镜像名
-
-- .
-
-Dockerfile 文件所在目录，可以指定Dockerfile 的绝对路径
+=== 手动拉取 `mirrorgooglecontainers`
 
 [source,sh]
 ----
 docker pull mirrorgooglecontainers/kube-apiserver-amd64:v1.11.3
-
 docker pull mirrorgooglecontainers/kube-controller-manager-amd64:v1.11.3
-
 docker pull mirrorgooglecontainers/kube-scheduler-amd64:v1.11.3
-
 docker pull mirrorgooglecontainers/kube-proxy-amd64:v1.11.3
-
 docker pull mirrorgooglecontainers/pause:3.1
-
 docker pull mirrorgooglecontainers/etcd-amd64:3.2.18
-
 docker pull coredns/coredns:1.1.3
-
 docker save -o mirrorgooglecontainers1.tar \
   mirrorgooglecontainers/kube-proxy-amd64:v1.11.3  \
 ----
@@ -1574,7 +1332,7 @@ https://docs.docker.com/machine/
 
 === `docker-machine` 的工作原理是什么？
 
-image::./README/docker-machine.png[align="center"]
+image::./README/2021-05-06_08-54-09.png[align="center"]
 
 ==== `docker-machine` 跟 `docker-engine` 的差异
 

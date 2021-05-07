@@ -34,17 +34,17 @@ https://kubernetes.io
 https://kubernetes.io/docs/concepts/overview/what-is-kubernetes/
 ====
 
-=== `kubernetes` 的工作原理是什么？
+=== `kubernetes` 的组件
 
-- Control Plane Components
+- Control 组件
 
 kube-apiserver、etcd、kube-scheduler、kube-controller-manager、cloud-controller-manager
 
-- Node Components
+- Node 组件
 
 kubelet、kube-proxy、Container Runtime
 
-- Addons
+- 插件
 
 DNS、Dashboard
 
@@ -54,6 +54,33 @@ image::./README/kubernetes-components.png[align="center"]
 ====
 https://kubernetes.io/docs/concepts/overview/components/
 ====
+
+==== `kubernetes` 的 `kube-apiserver`
+
+`kube-apiserver` 提供集群管理的REST API接口，包括认证授权、数据校验以及集群状态变更等。
+
+. 只有 `API Server` 才直接操作 `etcd`
+. 其他模块通过 `API Server` 查询或修改数据
+. 提供其他模块之间的数据交互和通信的枢纽
+
+==== `kubernetes` 的 `kube-controller-manager`
+
+`kube-controller-manager` 由一系列的控制器组成，它通过apiserver监控整个集群的状态，并确保集群处于预期的工作状态。
+
+==== `kubernetes` 的 `kube-scheduler`
+
+`kube-scheduler` 负责分配调度 `Pod` 到集群内的 `node` 节点。
+
+. 监听 `kube-apiserver`，查询还未分配 `Node` 的 `Pod`
+. 根据调度策略为这些 `Pod` 分配节点
+
+==== `kubernetes` 的 `kube-proxy`
+
+`kube-proxy` 负责发布应用服务与负载均衡
+
+==== `kubernetes` 的 `kubelet`
+
+`kubelet` 在每个 `Node` 上都会启动一个 `kubelet` 服务进程。`kubelet` 作为连接 `Kubernetes Master` 和各 `Node` 之间的桥梁，用于处理 `Master` 下发到本节点的任务，管理 `Pod` 及 `Pod` 中的容器。每个 `kubelet` 进程都会在 `api-server` 上注册本节点自身的信息，定期向 `Master` 汇报节点资源的使用情况，`Node` 和 `Pod` 的CPU和内存使用数据由 `Metrics Server` 提供，其他指标由 `Prometheus` 采集和存储。
 
 ==== `Traditional deployment` 跟 `Container deployment` 的差异
 
@@ -94,19 +121,21 @@ image::./README/2021-05-04_11-47-01.png[align="center"]
 
 ==== 编译方式
 
-```
+[source,sh]
+----
 git clone https://github.com/kubernetes/kubernetes
 cd kubernetes
 make
-```
+----
 
 You have a working Docker environment.
 
-```
+[source,sh]
+----
 git clone https://github.com/kubernetes/kubernetes
 cd kubernetes
 make quick-release
-```
+----
 
 ==== 下载现成
 

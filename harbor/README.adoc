@@ -7,31 +7,33 @@ Author 卢冬榕
 :numbered:
 
 
-= harbor
+= Harbor
 
-== `harbor` 是什么？
+== `Harbor` 是什么？
 
-Harbor is an open source registry that secures artifacts with policies and role-based access control, ensures images are scanned and free from vulnerabilities, and signs images as trusted. 
+`Harbor` 是开源镜像管理软件，基于角色控制权限。 
 
 [NOTE]
 ====
 https://goharbor.io
 ====
 
-- 代码托管
+- 代码托管 - https://github.com/goharbor/harbor
 
-https://github.com/goharbor/harbor
+- webhook - https://goharbor.io/docs/1.10/working-with-projects/project-configuration/configure-webhooks/
 
-=== `harbor` 具备哪些解决能力？
+=== `Harbor` 的能力
 
-users can manage images, manifest lists, Helm charts, CNABs, OPAs among others which all adhere to the OCI image specification. It also allows for pulling, pushing, deleting, tagging, replicating, and scanning such kinds of artifacts. Signing images and manifest list are also possible now.
+`Harbor` 支持拉、推、删除、标记、复制和扫描镜像。
 
 [NOTE]
 ====
 https://github.com/goharbor/harbor/wiki/Architecture-Overview-of-Harbor
 ====
 
-==== 跟 `类似` 对比存在哪些优势？
+==== `Harbor` 跟 `同类` 的差异
+
+https://github.com/goharbor/harbor
 
 - Cloud native registry
 
@@ -41,25 +43,19 @@ https://github.com/goharbor/harbor/wiki/Architecture-Overview-of-Harbor
 
 - ...
 
-[NOTE]
-====
-https://github.com/goharbor/harbor
-====
+=== `harbor` 的原理
 
-=== `harbor` 的工作原理是什么？
-
-users can manage images.pulling, pushing, deleting...
-
-image::./README/architecture.png[align="center"]
-
-[NOTE]
-====
 https://github.com/goharbor/harbor/wiki/Architecture-Overview-of-Harbor
-====
 
-== 搭建 `harbor` 环境
+用户可以管理镜像。拉、推、删除...
 
-=== `harbor` 环境依赖条件？
+image::./README/2021-05-06_09-32-01.png[align="center"]
+
+== 搭建 `Harbor` 环境
+
+=== 依赖环境
+
+https://goharbor.io/docs/2.2.0/install-config/installation-prereqs/
 
 - Hardware
 
@@ -91,50 +87,40 @@ https://github.com/goharbor/harbor/wiki/Architecture-Overview-of-Harbor
 | 80   | HTTP     | Harbor portal 
 |====================
 
-[NOTE]
-====
-https://goharbor.io/docs/2.2.0/install-config/installation-prereqs/
-====
+=== 下载软件
 
-=== 下载 `harbor`
-
-Download either the online installer or the offline installer.
+下载在线安装程序或离线安装程序。
 
 [NOTE]
 ====
 https://goharbor.io/docs/1.10/install-config/download-installer/
 ====
 
-==== releases page
+==== 发布地址
 
-image::./README/20200817113701.png[align="center"]
-
-[NOTE]
-====
 https://github.com/goharbor/harbor/releases
-====
 
-===== 下载链接地址
+image::./README/2021-05-06_09-33-01.png[align="center"]
 
-image::./README/20200817113702.png[align="center"]
+===== 下载地址
 
-===== 下载offline->离线版
+- 下载offline->离线版
 
 [source,sh]
 ----
 wget https://github.com/goharbor/harbor/releases/download/v1.10.2/harbor-offline-installer-v1.10.2.tgz
 ----
 
-===== 下载online->在线版
+- 下载online->在线版
 
 [source,sh]
 ----
 wget https://github.com/goharbor/harbor/releases/download/v1.10.2/harbor-online-installer-v1.10.2.tgz
 ----
 
-=== 在 `docker` 上搭建 `harbor`
+=== 在 `Docker` 上搭建 `Harbor`
 
-==== 安装 `v1.10.1`
+==== 下载 `v1.10.1`
 
 [source,sh]
 ----
@@ -143,7 +129,7 @@ $ cd /opt/n5/harbor/work
 $ wget https://github.com/goharbor/harbor/releases/download/v1.10.2/harbor-offline-installer-v1.10.2.tgz
 ----
 
-==== 安装 load image
+==== 安装 `v1.10.1`
 
 [source,sh]
 ----
@@ -153,14 +139,16 @@ $ cd /opt/n5/harbor
 $ docker load -i harbor.v1.10.1.tar.gz
 ----
 
-==== 安装 ca
+==== 创建 `CA证书`
+
+- 如何创建 `CA证书` - https://github.com/ludongrong/devops-dev-net
 
 [source,sh]
 ----
 $ ll /etc/cert/n5
 ----
 
-[source,sh]
+[source,text]
 ----
 /etc/cert/n5/ca-config.json
 /etc/cert/n5/ca-key.pem
@@ -168,6 +156,8 @@ $ ll /etc/cert/n5
 ----
 
 ==== 配置
+
+https://goharbor.io/docs/1.10/install-config/configure-yml-file/
 
 [source,sh]
 ----
@@ -177,39 +167,42 @@ $ vi harbor.yml
 # The IP address or hostname to access admin UI and registry service.
 # DO NOT use localhost or 127.0.0.1, because Harbor needs to be accessed by external clients.
 
-hostname: 192.168.41.32
+hostname: 192.168.41.32 <1>
 
 # https related config
 https:
 
-# https port for harbor, default is 443
+# https port for harbor, default is 443 <2>
   port: 443
 
-# The path of cert and key files for nginx
+# The path of cert and key files for nginx <3>
   certificate: /etc/cert/n5/ca.pem
   private_key: /etc/cert/n5/ca-key.pem
 
 # The initial password of Harbor admin
 # It only works in first time to install harbor
 # Remember Change the admin password from UI after launching Harbor.
-harbor_admin_password: Harbor12345
+harbor_admin_password: Harbor12345 <4>
 
 # Harbor DB configuration
 database:
 # The password for the root user of Harbor DB. Change this before any production use.
   password: root123
 # The default data volume
-data_volume: /opt/n5/harbor/bin/harbor-v1.10.1/data
+data_volume: /opt/n5/harbor/bin/harbor-v1.10.1/data <5>
 ----
 
-[NOTE]
-====
-https://goharbor.io/docs/1.10/install-config/configure-yml-file/
-====
+<1> 地址
+<2> https端口
+<3> https证书
+<4> 登录密码
+<5> 数据卷
 
-== 维护 `harbor` 环境
+== 维护 `Harbor` 环境
 
 === 开启和关闭
+
+https://goharbor.io/docs/1.10/install-config/run-installer-script/
 
 [source,]
 ----
@@ -228,34 +221,86 @@ $ docker-compose down -v
 ----
 
 ==== 开启
+
 [source,]
 ----
 $ docker-compose up -d
 ----
 
-[NOTE]
-====
-https://goharbor.io/docs/1.10/install-config/run-installer-script/
-====
+=== dial tcp 127.0.0.1:1514: connect: connection refused
 
-== 使用 `harbor`
+使用docker-compose ps查看容器，发现harbor-log容器一直在重启。
 
-=== 使用 `harbor` 的 `站点`
+使用docker logs -f harbor-log查看harbor-log日志。
+
+解决方案
+
+[source,sh]
+----
+# 导出harbor-log容器
+mkdir -p /tmp/harbor-log
+cd /tmp/harbor-log
+docker export harbor-log -o harbor-log.tar
+
+# 解压tar包
+tar xvfp harbor-log.tar
+
+# 修改shadow文件的值
+sed -i 's/:90:/:99999:/g' /tmp/harbor-log/etc/shadow
+
+# 将修改后的shadow文件挂载到harbor-log容器内
+mkdir -p /opt/harbor-log-etc/
+cp /tmp/harbor-log/etc/shadow /opt/harbor-log-etc/shadow
+
+# 修改docker-composr.yml文件，harbor-log容器的volumes配置，增加以下配置
+      - type: bind
+        source: /opt/harbor-log-etc/shadow
+        target: /etc/shadow
+# 重启harbor即可
+docker-compose down
+docker-compose up -d
+----
+
+== 使用 `Harbor`
+
+=== 使用 `Harbor` 的 `站点`
 
 ==== 登录系统
 
-浏览器访问 `https://192.168.41.32:443`，用账号 `admin` 和 harbor.cfg 配置文件中的默认密码 `Harbor12345` 登陆系统。
+浏览器访问 `https://192.168.41.32:443`，用账号 `admin` 和 `harbor.cfg` 配置文件中的默认密码 `Harbor12345` 登陆系统。
 
-image::./README/20200817113703.png[align="center"]
+image::./README/2021-05-06_09-34-02.png[align="center"]
 
 ==== 站点主页
 
-image::./README/20200817113704.png[align="center"]
+image::./README/2021-05-06_09-34-03.png[align="center"]
 
 ==== 用户管理
 
-image::./README/20200817113705.png[align="center"]
+image::./README/2021-05-06_09-34-04.png[align="center"]
 
 ==== 仓库管理
 
-image::./README/20200817113706.png[align="center"]
+image::./README/2021-05-06_09-34-05.png[align="center"]
+
+=== 推送到 `Harbor`
+
+[source,]
+----
+docker login 192.168.41.32
+username:admin
+password:....
+docker tag hello-world 192.168.41.32/test/hello-world
+docker images
+docker push 192.168.41.32/test/hello-world
+----
+
+=== 从 `Harbor` 拉取
+
+[source,]
+----
+docker rmi 192.168.41.32/test/hello-world
+docker images
+docker pull 192.168.41.32/test/hello-world
+docker images
+----
