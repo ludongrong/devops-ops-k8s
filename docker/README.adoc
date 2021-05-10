@@ -19,7 +19,8 @@ https://docs.docker.com/get-started/overview/
 ====
 
 - 代码托管 - https://github.com/docker/docker-ce
-- CLI - https://docs.docker.com/engine/reference/commandline/push/
+- 命令手册 - https://docs.docker.com/engine/reference/commandline/push/
+- 引用教程 - https://www.runoob.com/docker/docker-architecture.html
 
 === `容器` 是什么？
 
@@ -727,14 +728,14 @@ group仓库
 
 [source,sh]
 ----
-$ docker login -u admin -p admin123 192.168.41.33:8082
+$ docker login -u admin -p admin123 192.168.41.32:8082
 ----
 
 local仓库
 
 [source,sh]
 ----
-$ docker login -u admin -p admin123 192.168.41.33:8083
+$ docker login -u admin -p admin123 192.168.41.32:8083
 ----
 
 ==== 测试pull/push
@@ -759,65 +760,40 @@ Docker CLI（Command-Line）
 https://docs.docker.com/engine/reference/commandline/docker/
 ====
 
-=== 管理
-
-\>>查看docker版本
+=== 维护 `Docker`
 
 [source,sh]
 ----
+# 查看版本
 $ sudo docker version
-----
-
-\>>查看docker安装信息
-
-[source,sh]
-----
+# 查看docker安装信息
 $ sudo docker -H 192.168.41.31 info
-----
-
-\>>docker命令帮助文档
-
-[source,sh]
-----
+# docker命令帮助文档
 $ sudo docker stats --help
-----
 
-
-
-**docker启停**
-
-\>>service
-
-[source,sh]
-----
+# 启停docker服务
 $ service docker {start|stop|restart|status}
 
-# 样例
-$ sudo systemctl restart docker.service
-----
-
-\>>systemctl
-
-[source,sh]
-----
 $ sudo systemctl daemon-reload
 $ sudo systemctl restart docker
-----
+# 重启
+$ sudo systemctl restart docker.service
 
-\>>启动docker程序
-
-[source,sh]
-----
+# 启动docker程序
 $ systemctl daemon-reload
 $ systemctl start docker
 $ systemctl enable docker
 ----
 
-**docker>>增加映射端口**
+==== 增加映射端口
 
 [source,sh]
 ----
 $ cd /var/lib/docker/containers/[hash_of_the_container]
+----
+
+[source,sh]
+----
 $ vi hostconfig.json
 ----
 
@@ -830,7 +806,10 @@ $ vi config.v2.json
 
 ExposedPorts":{"8443/tcp":{}}
 
-service docker restart
+[source,sh]
+----
+$ service docker restart
+----
 
 **仓库管理**
 
@@ -847,50 +826,11 @@ https://hub.docker.com/
 $ docker search ubuntu
 ----
 
-**拉取**
-
-[source,sh]
-----
-$ docker pull ubuntu
-$ docker pull 192.168.41.33:8082/nginx:1.18.0
-----
-
 [source,]
 ----
 [Service]
 
 Environment="HTTP_PROXY=https://192.168.41.33:8082"
-----
-
-
-**推送**
-
-[source,sh]
-----
-$ docker push username/ubuntu:18.04
-----
-
-
-\#1.标记镜像
-
-[source,sh]
-----
-$ docker tag {镜像名}:{tag} {Harbor地址}:{端口}/{Harbor项目名}/{自定义镜像名}:{自定义tag}
-
-$ docker tag goharbor/harbor-migrator:v1.10.1 192.168.235.31/library/harbor-migrator:v1.10.1
-----
-
-
-\#2.push 到Harbor
-
-[source,sh]
-----
-$ docker push {Harbor地址}:{端口}/{自定义镜像名}:{自定义tag}
-
-$ docker push 192.168.235.31/library/harbor-migrator:v1.10.1
-
-# pull 到本地
-$ docker pull 192.168.2.108：5000/test/harbor-adminserver:v1.1.0
 ----
 
 **推送 >> 批量推送**
@@ -910,21 +850,6 @@ done
 for i in $(docker images | grep zabbix | awk 'BEGIN{OFS=":"}{print $1,$2}'); do 
   docker push $i;
 done
-----
-
-
-**登录**
-
-[source,sh]
-----
-$ docker login
-----
-
-**退出**
-
-[source,sh]
-----
-$ docker logout
 ----
 
 **加载**
@@ -949,27 +874,6 @@ $ docker save 0245d66323de -o /opt/docker/chartmuseum-photon.tar
 
 **镜像管理**
 
-**列表**
-
-[source,sh]
-----
-$ docker images
-----
-
-[source,text]
-----
-REPOSITORY：表示镜像的仓库源
-TAG：镜像的标签
-IMAGE ID：镜像ID
-CREATED：镜像创建时间
-SIZE：镜像大小
-----
-
-
-同一仓库源可以有多个 TAG，代表这个仓库源的不同个版本，如 ubuntu 仓库源里，
-
-有 15.10、14.04 等多个不同的版本，我们使用 REPOSITORY:TAG 来定义不同的镜像。
-
 **导入**
 
 [source,]
@@ -993,68 +897,16 @@ docker import http://example.com/exampleimage.tgz example/imagerepo
 docker export 1e560fca3906 > ubuntu.tar
 ----
 
-**删除**
-
-[source,]
-----
-$ docker rmi [镜像名|镜像ID]
-
-$ docker rmi [镜像名|镜像ID] [镜像名|镜像ID]
-----
-
-强制删除
-
-[source,]
-----
-$ docker rmi -f [镜像名|镜像ID]
-----
-
-删除全部
-
-[source,]
-----
-$ docker rmi -f $(docker images -qa) 
-----
-
-docker tag 860c279d2fec runoob/centos:dev
-
-docker tag 镜像ID，这里是 860c279d2fec ,用户名称、镜像源名(repository name)和新的标签名(tag)。
-
-使用 docker images 命令可以看到，ID为860c279d2fec的镜像多一个标签。
 [source,]
 ----
 docker commit -m="has update" -a="runoob" e218edb10161 runoob/ubuntu:v2
 ----
-
 
 各个参数说明：
 
 -m: 提交的描述信息
 
 -a: 指定镜像作者
-[source,]
-----
-e218edb10161：容器 ID
-
-runoob/ubuntu:v2: 指定要创建的目标镜像名
-
-Dockerfile格式
-
-FROM nginx
-
-RUN echo '这是一个本地构建的nginx镜像' > /usr/share/nginx/html/index.html
-
-RUN格式
-
-RUN：用于执行后面跟着的命令行命令。有以下俩种格式：
-
-shell 格式：
-
-RUN <命令行命令>
-
-\# <命令行命令> 等同于，在终端操作的 shell 命令。
-----
-
 
 exec 格式：
 
@@ -1067,138 +919,53 @@ RUN yum install wget \
    && tar -xvf redis.tar.gz
 ----
 
+=== 维护镜像
 
-**容器管理**
-
-**运行容器**
-
-[source,]
+[source,sh]
 ----
-$ docker run ubuntu:15.10 /bin/echo "Hello world"
-----
+# 删除
+$ docker rmi [镜像名|镜像ID]
+$ docker rmi [镜像名|镜像ID] [镜像名|镜像ID]
 
-/bin/echo "Hello world": 在启动的容器里执行的命令
+# 强制删除
+$ docker rmi -f [镜像名|镜像ID]
 
-**运行容器（后台模式）**
+# 删除全部
+$ docker rmi -f $(docker images -qa) 
 
-[source,]
-----
-$ docker run -d ubuntu:15.10 /bin/sh -c "while true; do echo hello world; sleep 1; done"
-----
-
-输出
-
-2b1b7a428627c51ab8810d541d759f072b4fc75487eed05812646b8534a2fe63
-
-​          
-**运行容器（启动带映射端口）**
-
-[source,]
-----
-$ docker run -d -p 5000:5000 training/webapp python app.py
+docker images | awk '{print $3}' | xargs -I {} docker rmi {}
+docker images | grep goharbor | awk '{print $3}' | xargs -I {} echo {}
+docker images | grep gcr.io | awk '{print $3}' | xargs -I {} docker rmi {}
+docker images | grep goharbor | awk '{print $3}' | xargs -I {} docker pull {}
+docker images | grep goharbor | awk '{print $1}' | xargs -I {} docker tag {} 192.168.41.33:8082/{}
+docker images | grep goharbor | awk '{print $1}' | xargs -I {} docker push 192.168.41.33:8082/{}
 ----
 
-容器内部的 5000 端口映射到我们本地主机的 5000 端口上
+=== 维护容器
 
-**运行容器（交互方式）**
-
-[source,]
+[source,sh]
 ----
-$ docker run -i -t ubuntu:15.10 /bin/bash
-----
-
--t->在新容器内指定一个伪终端或终端。
-
--i->允许你对容器内的标准输入 (STDIN) 进行交互。
-
-通过运行 exit 命令或者使用 CTRL+D 来退出容器。
-
-**进入容器**
-
-[source,]
-----
-$ docker attach 1e560fca3906 
-
-$ docker exec 1e560fca3906
-----
-
-推荐大家使用 docker exec 命令，因为此退出容器终端，不会导致容器的停止。
-
-**挂载目录**
-
-依据于【https://docs.docker.com/storage/volumes/】
-
-[source,]
-----
-$ docker run -i -t -v /root/software/:/mnt/software/ 9f38484d220f /bin/bash
-----
-
-**查看容器**
-
-$ sudo docker ps
-
-输出详情介绍：
-[source,]
-----
-CONTAINER ID: 容器 ID。
-
-IMAGE: 使用的镜像。
-
-COMMAND: 启动容器时运行的命令。
-
-CREATED: 容器的创建时间。
-
-STATUS: 容器状态。状态有7种。
-
-PORTS: 容器的端口信息和使用的连接类型（tcp\udp）。
-
-NAMES: 自动分配的容器名称。
-----
-
-
-容器状态
-[source,]
-----
-created（已创建）
-
-restarting（重启中）
-
-running（运行中）
-
-removing（迁移中）
-
-paused（暂停）
-
-exited（停止）
-
-dead（死亡）
-----
-
-
-**查看端口**
-
+# 查看端口
 docker port
-
-**查看容器内部的标准输出**
-
+# 查看容器内部的标准输出 -f -> 持续输出
 docker logs -f bf08b7f2cd89
 
--f->持续输出
-
-**查看底层**
-
+# 查看底层
 docker inspect wizardly_chandrasekhar
-
-**查看进程**
-
+# 查看进程
 docker top wizardly_chandrasekhar
 
-**停止/重启**
-
-[source,]
-----
+# 停止/重启容器
 $ docker stop/start/kill/restart /rm 容器名字或者ID
 $ docker stop amazing_cori
+
+# 停止所有容器 - Exited类型
+docker ps -a | grep "Exited" | awk '{print $1 }'| xargs docker stop
+
+# 删除所有容器 - Exited类型
+docker ps -a | grep "Exited" | awk '{print $1 }' | xargs docker rm
+# 删除所有容器 - none类型
+docker images | grep none | awk '{print $3 }' | xargs docker rmi
 ----
 
 == 使用 `Docker`
@@ -1217,21 +984,193 @@ docker pull coredns/coredns:1.1.3
 docker save -o mirrorgooglecontainers1.tar \
   mirrorgooglecontainers/kube-proxy-amd64:v1.11.3  \
 ----
+
+=== 制作 `maven` 镜像
+
+==== 以 `maven:3.6.3-jdk-8` 为基础
+
+https://hub.docker.com/_/maven?tab=description&page=1&ordering=last_updated&name=3.6.3-jdk-8
+
+- 编写 `Dockerfile`
+
+[source,sh]
+----
+cat << EOF > Dockerfile
+FROM maven:3.6.3-jdk-8
+COPY settings.xml /usr/share/maven/conf/
+EOF
+----
+
+==== 以 `java-centos:7-1.8` 为基础
+
+https://github.com/stakater/dockerfile-maven-centos/blob/master/Dockerfile
+
+- 编写 `Dockerfile`
+
+[source,sh]
+----
+cat << EOF > Dockerfile
+FROM stakater/java-centos:7-1.8
+
+LABEL name="Stakater Maven Image on CentOS" \    
+      maintainer="Stakater <stakater@aurorasolutions.io>" \
+      vendor="Stakater" \
+      release="1" \
+      summary="A Maven based image on CentOS" 
+
+# Setting Maven Version that needs to be installed
+ARG MAVEN_VERSION=3.5.4
+
+# Changing user to root to install maven
+USER root
+
+# Install required tools
+# which: otherwise 'mvn version' prints '/usr/share/maven/bin/mvn: line 93: which: command not found'
+RUN yum update -y && \
+  yum install -y which && \
+  yum clean all
+
+# Maven
+RUN curl -fsSL https://archive.apache.org/dist/maven/maven-3/$MAVEN_VERSION/binaries/apache-maven-$MAVEN_VERSION-bin.tar.gz | tar xzf - -C /usr/share \
+  && mv /usr/share/apache-maven-$MAVEN_VERSION /usr/share/maven \
+  && ln -s /usr/share/maven/bin/mvn /usr/bin/mvn
+  
+# COPY settings.xml /usr/share/maven/conf/ <1>
+
+ENV MAVEN_VERSION=${MAVEN_VERSION}
+ENV M2_HOME /usr/share/maven
+ENV maven.home $M2_HOME
+ENV M2 $M2_HOME/bin
+ENV PATH $M2:$PATH
+
+# Again using non-root user i.e. stakater as set in base image
+USER 10001
+
+# Define default command, can be overriden by passing an argument when running the container
+CMD ["mvn","-version"]
+EOF
+----
+
+<1> 指定自己的 `settings.xml`
+
+- 开始制作 `build`
+
+[source,sh]
+----
+docker build -t 192.168.41.32/test/maven33:3.6.3 .
+----
+
+== 使用镜像
+
+=== 使用 `redis` 镜像
+
+https://hub.docker.com/_/redis
+
+[source,sh]
+----
+docker search redis
+docker pull redis:latest
+docker run -itd --name redis-test \
+  -p 6379:6379 \
+  redis
+docker ps
+docker exec -it redis-test /bin/bash
+----
+
+==== 增加 redis.conf
+
+[source,]
+----
+FROM redis
+COPY redis.conf /usr/local/etc/redis/redis.conf
+CMD [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
+----
+
+=== 使用 `nginx` 镜像
+
+https://hub.docker.com/_/nginx
+
+[source,sh]
+----
+docker search nginx
+docker pull nginx:latest
+docker run --name nginx-test \
+  -p 8080:80 \
+  -d nginx
+docker ps
+----
+
+==== 增加静态文件
+
+[source,]
+----
+FROM nginx
+COPY static-html-directory /usr/share/nginx/html
+----
+
+=== 使用 `mysql` 镜像
+
+https://hub.docker.com/_/mysql
+
+[source,sh]
+----
+docker search mysql
+docker pull mysql:latest
+docker run -itd --name mysql-test \
+  -p 3306:3306 \
+  -e MYSQL_ROOT_PASSWORD=123456 \
+  -v /my/own/datadir:/var/lib/mysql \
+  mysql
+docker ps
+----
+
+=== 使用 `tomcat` 镜像
+
+https://hub.docker.com/_/tomcat
+
+[source,sh]
+----
+docker search tomcat
+docker pull tomcat
+docker images|grep tomcat
+docker run --name tomcat \
+  -p 8080:8080 \ <1>
+  -v $PWD/test:/usr/local/tomcat/webapps/test \ <2>
+  -d tomcat
+----
+
+<1> 将容器的 8080 端口映射到主机的 8080 端口。
+<2> 将主机中当前目录下的 test 挂载到容器的 /test。
+
+=== 使用 `MongoDB` 镜像
+
+https://hub.docker.com/_/mongo
+
+https://www.runoob.com/docker/docker-install-mongodb.html
+
+[source,sh]
+----
+$ docker run -itd --name mongo \
+  -p 27017:27017 mongo \
+  --auth <1>
+----
+
+<1> 需要密码才能访问容器服务。
+
+[source,sh]
+----
+$ docker exec -it mongo mongo admin
+# 创建一个名为 admin，密码为 123456 的用户。
+>  db.createUser({ user:'admin',pwd:'123456',roles:[ { role:'userAdminAnyDatabase', db: 'admin'},"readWriteAnyDatabase"]});
+# 尝试使用上面创建的用户信息进行连接。
+> db.auth('admin', '123456')
+----
   
 = docker-component
 
 == `docker-component` 是什么？
 
-Compose is a tool for defining and running multi-container Docker applications.
-
-[NOTE]
-====
-https://docs.docker.com/compose/
-====
-
-=== `docker-component` 具备哪些解决能力？
-
-defining and running multi-container Docker applications.
+`docker-component` 是定义和运行多 `Docker` 容器的工具。
 
 [NOTE]
 ====
@@ -1319,7 +1258,7 @@ Docker Machine is a tool that lets you install Docker Engine on virtual hosts, a
 https://docs.docker.com/machine/
 ====
 
-=== `docker-machine` 具备哪些解决能力？
+=== `docker-machine` 的能力
 
 - Install and run Docker on Mac or Windows
 - Provision and manage multiple remote Docker hosts
@@ -1330,7 +1269,7 @@ https://docs.docker.com/machine/
 https://docs.docker.com/machine/
 ====
 
-=== `docker-machine` 的工作原理是什么？
+=== `docker-machine` 的原理
 
 image::./README/2021-05-06_08-54-09.png[align="center"]
 

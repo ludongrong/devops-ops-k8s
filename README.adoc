@@ -420,7 +420,7 @@ docker run -i \
     -v "${MAVEN_SPACE}":/usr/src/git \
     -v "${MAVEN_REPO}":/root/.m2 \
     -w /usr/src/git \
-    maven:3.6.3-jdk-8 mvn clean install
+    192.168.41.32/test/maven33:3.6.3 mvn clean install
 
 #删除容器
 docker ps -a | grep ${MAVEN_NAME} | awk '{print $1}' | xargs -I {} docker rm {}

@@ -145,6 +145,124 @@ image::./README/2021-05-04_11-47-04.png[align="center"]
 
 https://github.com/ludongrong/devops/tree/main/41-%E9%85%8D%E7%BD%AE%E4%B8%AD%E5%BF%83
 
+=== 安装 `containerd`
+
+==== 修改 `/etc/containerd/config.toml`
+
+- containerd/cri - https://github.com/containerd/cri/blob/release/1.4/docs/registry.md
+
+- containerd/containerd - https://github.com/containerd/containerd/blob/master/docs/cri/config.md
+
+===== 配置 `http` 协议注册端 - Registry Endpoint
+
+注册端 -> 拉取镜像的服务器。
+
+[source,toml]
+----
+version = 2
+root = "${CONTAINERD_DIR}/root"
+state = "${CONTAINERD_DIR}/state"
+
+[plugins]
+  [plugins."io.containerd.grpc.v1.cri"]
+	sandbox_image = "gcr.io/google-containers/pause:3.2" <1>
+    [plugins."io.containerd.grpc.v1.cri".cni]
+      bin_dir = "/opt/k8s/bin"
+      conf_dir = "/etc/cni/net.d"
+  [plugins."io.containerd.grpc.v1.cri".registry]
+    [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
+      [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
+        endpoint = ["http://192.168.41.32:8083"]
+	  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."gcr.io"]
+	    endpoint = ["http://192.168.41.32:8083"]
+	  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."k8s.gcr.io"]
+	    endpoint = ["http://192.168.41.32:8083"]
+	  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."quay.io"]
+	    endpoint = ["http://192.168.41.32:8083"]
+    [plugins."io.containerd.grpc.v1.cri".registry.configs]
+      [plugins."io.containerd.grpc.v1.cri".registry.configs."docker.io".tls]
+        insecure_skip_verify = true
+	  [plugins."io.containerd.grpc.v1.cri".registry.configs."gcr.io".tls]
+        insecure_skip_verify = true
+	  [plugins."io.containerd.grpc.v1.cri".registry.configs."k8s.gcr.io".tls]
+        insecure_skip_verify = true
+	  [plugins."io.containerd.grpc.v1.cri".registry.configs."quay.io".tls]
+        insecure_skip_verify = true
+  [plugins."io.containerd.runtime.v1.linux"]
+    shim = "containerd-shim"
+    runtime = "runc"
+    runtime_root = ""
+    no_shim = false
+    shim_debug = false
+----
+
+<1> 国内镜像 registry.cn-hangzhou.aliyuncs.com/google_containers/pause:3.2
+
+===== 配置 `https` 协议注册端 - Registry TLS Communication
+
+注册端 -> 拉取镜像的服务器。
+
+**遗留问题**，配置了 `tls` 还是报 x509: certificate signed by unknown authority。
+
+[NOTE]
+====
+引用 - https://blog.csdn.net/y_chen_007/article/details/97525206
+====
+
+[source,toml]
+----
+version = 2
+root = "${CONTAINERD_DIR}/root"
+state = "${CONTAINERD_DIR}/state"
+
+[plugins]
+  [plugins."io.containerd.grpc.v1.cri"]
+	sandbox_image = "gcr.io/google-containers/pause:3.2"
+    [plugins."io.containerd.grpc.v1.cri".cni]
+      bin_dir = "/opt/k8s/bin"
+      conf_dir = "/etc/cni/net.d"
+  [plugins."io.containerd.grpc.v1.cri".registry]
+    [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
+      [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
+        endpoint = ["https://192.168.41.32:8082"]
+	  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."gcr.io"]
+	    endpoint = ["https://192.168.41.32:8082"]
+    [plugins."io.containerd.grpc.v1.cri".registry.configs]
+      [plugins."io.containerd.grpc.v1.cri".registry.configs."docker.io".tls]
+        ca_file   = "ca.pem"
+        cert_file = "n5.pem"
+        key_file  = "n5-key.pem"
+	  [plugins."io.containerd.grpc.v1.cri".registry.configs."gcr.io".tls]
+        ca_file   = "ca.pem"
+        cert_file = "n5.pem"
+        key_file  = "n5-key.pem"
+  [plugins."io.containerd.runtime.v1.linux"]
+    shim = "containerd-shim"
+    runtime = "runc"
+    runtime_root = ""
+    no_shim = false
+    shim_debug = false
+----
+
+==== 升级 `containerd`
+
+[source,sh]
+----
+cd /opt/k8s/work
+
+wget https://github.com/containerd/containerd/releases/download/v1.5.0/containerd-1.5.0-linux-amd64.tar.gz
+
+mkdir containerd-1.5.0
+tar -xvf containerd-1.3.3.linux-amd64.tar.gz -C containerd-1.5.0
+
+for node_ip in ${NODE_IPS[@]}
+  do
+    echo ">>> ${node_ip}"
+    scp containerd-1.5.0/bin/* root@${node_ip}:/opt/k8s/bin
+    ssh root@${node_ip} "chmod a+x /opt/k8s/bin/* && mkdir -p /etc/cni/net.d"
+  done
+----
+
 === 安装 `calicoctl`
 
 https://www.kancloud.cn/willfeng/k8s/654128
@@ -210,6 +328,44 @@ for node_ip in ${NODE_IPS[@]}
     echo ">>> ${node_ip}"
     ssh root@${node_ip} "systemctl status etcd|grep Active"
   done
+----
+
+==== 问题 - BGP not established with...
+
+- 问题
+
+Readiness probe failed: caliconode is not ready: BIRD is not ready: BGP not established with 10.117.
+
+[NOTE]
+====
+取日志命令 -> kubectl describe pods calico-node-hzsff -n kube-system
+====
+
+- 解决方法
+
+调整calicao 网络插件的网卡发现机制。在 `calico.yaml` 文件添加以下二行。
+
+[source,text]
+----
+- name: IP_AUTODETECTION_METHOD
+    value: "interface=ens.*"  <1>
+----
+
+<1> ens 根据实际网卡开头配置
+
+- 引用
+
+https://blog.csdn.net/u011327801/article/details/100579803
+
+==== 升级 `calico`
+
+[source,sh]
+----
+cd /opt/k8s/work
+
+wget https://github.com/projectcalico/calico/releases/download/v3.12.0/release-v3.12.0.tgz
+
+tar -xvf release-v3.12.0.tgz
 ----
 
 == 维护 `kubernetes` 环境

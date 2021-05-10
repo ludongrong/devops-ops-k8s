@@ -285,6 +285,8 @@ image::./README/2021-05-06_09-34-05.png[align="center"]
 
 === 推送到 `Harbor`
 
+连接 `Harbor` 前需要先配置 `Docker` 客户端证书。 https://docs.docker.com/engine/security/certificates/
+
 [source,]
 ----
 docker login 192.168.41.32
@@ -296,6 +298,8 @@ docker push 192.168.41.32/test/hello-world
 ----
 
 === 从 `Harbor` 拉取
+
+连接 `Harbor` 前需要先配置 `Docker` 客户端证书。 https://docs.docker.com/engine/security/certificates/
 
 [source,]
 ----
