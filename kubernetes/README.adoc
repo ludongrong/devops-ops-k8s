@@ -11,7 +11,7 @@ Author 卢冬榕
 
 == `kubernetes` 是什么？
 
-Kubernetes, also known as K8s, is an open-source system for automating deployment, scaling, and management of containerized applications.
+`kubernetes` 是一个开源的容器编排引擎，用来对容器化应用进行自动化部署、 扩缩和管理。
 
 image::./README/components-of-kubernetes.png[align="center"]
 
@@ -22,12 +22,17 @@ https://kubernetes.io
 
 - 代码托管 - https://github.com/kubernetes/kubernetes
 
+- 命令手册 - https://kubernetes.io/zh/docs/reference/
+
+- http://docs.kubernetes.org.cn/475.html
+
 - 社区 - https://github.com/kubernetes/community
 
-=== `kubernetes` 具备哪些解决能力？
+=== `kubernetes` 的能力
 
 - Service discovery and load balancing（服务发现和负载均衡）
 - Storage orchestration（存储编排）
+...
 
 [NOTE]
 ====
@@ -35,6 +40,8 @@ https://kubernetes.io/docs/concepts/overview/what-is-kubernetes/
 ====
 
 === `kubernetes` 的组件
+
+https://kubernetes.io/docs/concepts/overview/components/
 
 - Control 组件
 
@@ -49,11 +56,6 @@ kubelet、kube-proxy、Container Runtime
 DNS、Dashboard
 
 image::./README/kubernetes-components.png[align="center"]
-
-[NOTE]
-====
-https://kubernetes.io/docs/concepts/overview/components/
-====
 
 ==== `kubernetes` 的 `kube-apiserver`
 
@@ -179,6 +181,10 @@ state = "${CONTAINERD_DIR}/state"
 	    endpoint = ["http://192.168.41.32:8083"]
 	  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."quay.io"]
 	    endpoint = ["http://192.168.41.32:8083"]
+	  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."quay.azk8s.cn"]
+	    endpoint = ["http://192.168.41.32:8083"]
+	  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."192.168.41.32"]
+	    endpoint = ["https://192.168.41.32"]
     [plugins."io.containerd.grpc.v1.cri".registry.configs]
       [plugins."io.containerd.grpc.v1.cri".registry.configs."docker.io".tls]
         insecure_skip_verify = true
@@ -188,6 +194,12 @@ state = "${CONTAINERD_DIR}/state"
         insecure_skip_verify = true
 	  [plugins."io.containerd.grpc.v1.cri".registry.configs."quay.io".tls]
         insecure_skip_verify = true
+      [plugins."io.containerd.grpc.v1.cri".registry.configs."quay.azk8s.cn".tls]
+        insecure_skip_verify = true
+      [plugins."io.containerd.grpc.v1.cri".registry.configs."192.168.41.32".tls]
+        ca_file   = "/etc/cert/n5/ca.pem"
+        cert_file = "/etc/cert/n5/n5.pem"
+        key_file  = "/etc/cert/n5/n5-key.pem"
   [plugins."io.containerd.runtime.v1.linux"]
     shim = "containerd-shim"
     runtime = "runc"
@@ -202,7 +214,7 @@ state = "${CONTAINERD_DIR}/state"
 
 注册端 -> 拉取镜像的服务器。
 
-**遗留问题**，配置了 `tls` 还是报 x509: certificate signed by unknown authority。
+**遗留问题**，`nexus` 配置了 `tls` 还是报 x509: certificate signed by unknown authority。
 
 [NOTE]
 ====
@@ -368,7 +380,104 @@ wget https://github.com/projectcalico/calico/releases/download/v3.12.0/release-v
 tar -xvf release-v3.12.0.tgz
 ----
 
+=== 安装 `metallb`
+
+- 引用 - https://blog.csdn.net/textdemo123/article/details/99400237
+- https://blog.csdn.net/networken/article/details/85928369
+- https://zhuanlan.zhihu.com/p/266422557
+
+-  官方文档 - https://metallb.universe.tf/tutorial/layer2/
+- 代码托管 - https://github.com/google/metallb
+
+自己搭建的k8s集群 （公有云环境除外），是没有LB能力的。MetalLB能够帮助你在kubernetes中创建LoadBalancer类型的kubernetes服务。
+
+[source,sh]
+----
+$ wget https://raw.githubusercontent.com/google/metallb/v0.7.3/manifests/metallb.yaml
+$ kubectl apply -f metallb.yaml
+$ kubectl get pod -n metallb-system  -o wide
+$ kubectl get daemonset -n metallb-system
+$ wget https://raw.githubusercontent.com/google/metallb/v0.7.3/manifests/example-layer2-config.yaml
+$ vi example-layer2-config.yaml
+----
+
+[source,sh]
+----
+kubectl get pod -n metallb-system
+----
+
+[source,yaml]
+----
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: metallb-system
+  name: config
+data:
+  config: |
+    address-pools:
+    - name: default
+      protocol: layer2
+      addresses:
+      - 192.168.92.200-192.168.92.210
+----
+
+[source,sh]
+----
+kubectl apply -f example-layer2-config.yaml
+----
+
+[source,yaml]
+----
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  annotations:
+    metallb.universe.tf/address-pool: 192.168.5.5-192.168.5.9 <1>
+spec:
+  ports:
+  - port: 80
+    targetPort: 80
+  selector:
+    app: nginx
+  type: LoadBalancer
+----
+
+<1> 特定池的分配
+
+[source,yaml]
+----
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    ...
+    metallb.universe.tf/allow-shared-ip: 192.168.5.9 <1>
+  name: myapp-svc
+  namespace: default
+spec:
+  clusterIP: 10.43.245.81
+  externalTrafficPolicy: Cluster <2>
+  ports:
+  - nodePort: 31714
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: myapp
+  sessionAffinity: None
+  type: LoadBalancer
+----
+
+<1> 指定共享外部IP，而不是从MetalLB中IP地址池中取
+<2> service.spec.externalTrafficPolicy=Cluster -> 将流量分配到服务中的所有Pod。service.spec.externalTrafficPolicy=Local -> 将流量发送到同一节点上的服务的pod
+
 == 维护 `kubernetes` 环境
+
+- `kubectl` 命令手册 - https://kubernetes.io/docs/reference/kubectl/kubectl/
+
+- 拉取镜像有关证书权限问题的引用 -  https://www.cnblogs.com/unchch/p/11771005.html
 
 === 通过 `kubectl` 查看日志
 
@@ -402,3 +511,113 @@ journalctl -xe
 ----
 cat /var/log/messages
 ----
+
+=== 无法删除monitoring
+
+https://github.com/kubernetes/kubeadm/issues/1688
+
+[source,sh]
+----
+kubectl delete namespace monitoring --force
+kubectl get namespace monitoring -o json > tmp.json
+kubectl proxy --address=0.0.0.0
+curl -k -H "Content-Type: application/json" -X PUT --data-binary @tmp.json http://192.168.41.35:8001/api/v1/namespaces/monitoring/finalize
+----
+
+=== coredns Back-off restarting failed container
+
+https://github.com/kubernetes/kubeadm/issues/1688
+
+[source,sh]
+----
+kubectl get pods -n kube-system -o wide
+kubectl describe pod/coredns-5c9dddbdcb-rczbl --namespace kube-system
+kubectl delete pod coredns-5c9dddbdcb-rczbl  --grace-period=0 --force -n kube-system
+kubectl logs -f coredns-5c9dddbdcb-rczbl -n kube-system
+kubectl edit cm coredns -n kube-system
+----
+
+=== 部署无状态应用
+
+https://kubernetes.io/docs/tutorials/stateless-application/expose-external-ip-address/
+
+https://matthewpalmer.net/kubernetes-app-developer/articles/kubernetes-deployment-tutorial-example-yaml.html
+
+- tsl拉取镜像 - https://www.cnblogs.com/unchch/p/11771005.html
+
+- https://kubernetes.io/docs/reference/kubernetes-api/service-resources/service-v1/#ServiceSpec
+
+image::./README/2021-05-10_23-18-25.png[align="center"]
+
+[source,yaml]
+----
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: load-balancer-example
+  name: hello1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: load-balancer-example
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: load-balancer-example
+    spec:
+      containers:
+      - image: 192.168.41.32/test/test-jenkins:1.0.0
+        name: hello1
+        ports:
+        - containerPort: 8080
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/name: load-balancer-example
+  name: hello1-service
+spec:
+  externalTrafficPolicy: Cluster
+  ports:
+  - port: 8080
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/name: load-balancer-example
+  type: LoadBalancer
+----
+
+[source,sh]
+----
+# 创建
+kubectl apply -f load-balancer-example.yaml
+# 显示副本信息
+kubectl get replicasets
+kubectl describe replicasets
+# 显示部署信息 - deployments
+kubectl get deployments hello1
+kubectl describe deployments hello1
+# 显示部署信息 - services
+kubectl get services hello1-service
+kubectl describe services hello1-service
+
+
+# 删除
+kubectl delete -f load-balancer-example.yaml
+
+# 升级
+kubectl set image deployment hello1 hello1=192.168.41.32/test/test-jenkins:1.0.1
+# 查看升级状态
+kubectl rollout status deployment/hello1
+
+# 回退
+kubectl rollout undo deployment hello1
+# 查看回退状态
+kubectl rollout status deployment/hello1
+----
+
+http://192.168.41.33:8080/springmvcdemo/

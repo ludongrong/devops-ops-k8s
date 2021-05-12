@@ -227,7 +227,7 @@ $ docker-compose down -v
 $ docker-compose up -d
 ----
 
-=== dial tcp 127.0.0.1:1514: connect: connection refused
+=== 问题 - dial tcp 127.0.0.1:1514: connect: connection refused
 
 使用docker-compose ps查看容器，发现harbor-log容器一直在重启。
 
