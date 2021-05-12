@@ -26,6 +26,8 @@ https://kubernetes.io
 
 - http://docs.kubernetes.org.cn/475.html
 
+- kubectl命令手册 - https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#-em-restart-em-
+
 - 社区 - https://github.com/kubernetes/community
 
 === `kubernetes` 的能力
@@ -537,6 +539,8 @@ kubectl logs -f coredns-5c9dddbdcb-rczbl -n kube-system
 kubectl edit cm coredns -n kube-system
 ----
 
+image::./README/2021-05-11_21-14-25.png[align="center"]
+
 === 部署无状态应用
 
 https://kubernetes.io/docs/tutorials/stateless-application/expose-external-ip-address/
@@ -545,7 +549,7 @@ https://matthewpalmer.net/kubernetes-app-developer/articles/kubernetes-deploymen
 
 - tsl拉取镜像 - https://www.cnblogs.com/unchch/p/11771005.html
 
-- https://kubernetes.io/docs/reference/kubernetes-api/service-resources/service-v1/#ServiceSpec
+- service配置手册 - https://kubernetes.io/docs/reference/kubernetes-api/service-resources/service-v1/#ServiceSpec
 
 image::./README/2021-05-10_23-18-25.png[align="center"]
 
@@ -581,15 +585,34 @@ metadata:
   labels:
     app.kubernetes.io/name: load-balancer-example
   name: hello1-service
+  namespace: default
 spec:
+  externalIPs:
+  - 192.168.41.33
   externalTrafficPolicy: Cluster
   ports:
-  - port: 8080
-    targetPort: 8080
+  - port: 9022 <1>
+    protocol: TCP
+    targetPort: 8080 <2>
   selector:
     app.kubernetes.io/name: load-balancer-example
+  sessionAffinity: None <3>
+  sessionAffinityConfig: <4>
+    clientIP:
+      timeoutSeconds: 10800
   type: LoadBalancer
+  allocateLoadBalancerNodePorts: false <5>
+status:
+  loadBalancer:
+    ingress:
+    - ip: 192.168.41.33
 ----
+
+<1> 暴露给服务的端口
+<2> 容器的端口
+<3> 用于维持会话亲和力，参数 ClientIP、None，某个ip的所有请求都由同一个pod处理。
+<4> 会话保持时间，在 sessionAffinity: ClientIP 有效
+<5> 是否自动为类型为LoadBalancer的服务分配NodePorts
 
 [source,sh]
 ----
@@ -610,9 +633,13 @@ kubectl describe services hello1-service
 kubectl delete -f load-balancer-example.yaml
 
 # 升级
-kubectl set image deployment hello1 hello1=192.168.41.32/test/test-jenkins:1.0.1
+kubectl set image deployment hello1 hello1=192.168.41.32/test/test-jenkins:1.0.1 --record
 # 查看升级状态
 kubectl rollout status deployment/hello1
+
+# 回退指定版本
+kubectl rollout history deployment/hello1
+kubectl rollout undo deployment/hello1 –revision=2
 
 # 回退
 kubectl rollout undo deployment hello1
@@ -621,3 +648,8 @@ kubectl rollout status deployment/hello1
 ----
 
 http://192.168.41.33:8080/springmvcdemo/
+
+[source,]
+----
+eyJhbGciOiJSUzI1NiIsImtpZCI6IkJoUVRFR09XS0dRNGtOTWJyR29xdGM1WjNUb2RudmhtWVVzbkhCbW9CUGsifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJrdWJlLXN5c3RlbSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJkYXNoYm9hcmQtYWRtaW4tdG9rZW4tejhjcXYiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGFzaGJvYXJkLWFkbWluIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQudWlkIjoiOTk5MTg5YmQtZmJlMS00ODY2LWEyNmEtYTc3NmU1NjZhZDU1Iiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50Omt1YmUtc3lzdGVtOmRhc2hib2FyZC1hZG1pbiJ9.ifbQgR4IaF_hjXLvMKZVaZoX1roMxYwKFCYpOYHd-fOBGeWMjcFiFhC0LbNZfFhIpOMVnTGFR58_GgM3kVT053XC6cJNM8hqRHbQ-ll7PNc5310egzkm0NdvTeGCqKprlbZcLssaPYfaOqq9ADEksM9aoxCE36jadfQKoaLoPn2XXP7bkDS7ubA_cebnO3QywDbXvtR_fz91B02KJpxH_bV4kWVjysrm25StiD2cAW9Iyk6pOmGHspnDWRNT-WJ68zGolqwEf6ihD2u7jc9TfAdcPoQ3jRSsdPDxunSC9OzswCuHGBqO6OjY5Pso22rHQVrqS3anTKwF5-RjLpd9Lg
+----
