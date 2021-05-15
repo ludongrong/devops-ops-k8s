@@ -26,7 +26,11 @@ https://kubernetes.io
 
 - http://docs.kubernetes.org.cn/475.html
 
+- https://hardocs.com/d/kubernetes/154-kubectl_logs.html
+
 - kubectl命令手册 - https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#-em-restart-em-
+
+- 配置手册 - https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/deployment-v1/
 
 - 社区 - https://github.com/kubernetes/community
 
@@ -118,6 +122,288 @@ image::./README/2021-05-04_11-48-59.png[align="center"]
 image::./README/2021-05-04_11-47-01.png[align="center"]
 
 == 搭建 `k8s+containerd` 环境
+
+=== `metallb` 版本架构
+
+自己搭建的 `k8s` 集群 （公有云环境除外），是没有 `LB` 能力的。`MetalLB` 能够帮助你在 `kubernetes` 中创建 `LoadBalancer` 类型的 `kubernetes` 服务。
+
+image::./README/2021-05-15_16-29-10.png[align="center"]
+
+==== 安装 `metallb`
+
+- 引用 - https://blog.csdn.net/textdemo123/article/details/99400237
+- https://blog.csdn.net/networken/article/details/85928369
+- https://zhuanlan.zhihu.com/p/266422557
+
+- 官方文档 - https://metallb.universe.tf/tutorial/layer2/
+- 代码托管 - https://github.com/google/metallb
+
+[source,sh]
+----
+$ wget https://raw.githubusercontent.com/google/metallb/v0.7.3/manifests/metallb.yaml
+$ kubectl apply -f metallb.yaml
+$ kubectl get pod -n metallb-system  -o wide
+$ kubectl get daemonset -n metallb-system
+$ wget https://raw.githubusercontent.com/google/metallb/v0.7.3/manifests/example-layer2-config.yaml
+$ vi example-layer2-config.yaml
+----
+
+[source,sh]
+----
+kubectl get pod -n metallb-system
+----
+
+[source,yaml]
+----
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: metallb-system
+  name: config
+data:
+  config: |
+    address-pools:
+    - name: default
+      protocol: layer2
+      addresses:
+      - 192.168.92.200-192.168.92.210
+----
+
+[source,sh]
+----
+kubectl apply -f example-layer2-config.yaml
+----
+
+[source,yaml]
+----
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  annotations:
+    metallb.universe.tf/address-pool: 192.168.5.5-192.168.5.9 <1>
+spec:
+  ports:
+  - port: 80
+    targetPort: 80
+  selector:
+    app: nginx
+  type: LoadBalancer
+----
+
+<1> 特定池的分配
+
+[source,yaml]
+----
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    ...
+    metallb.universe.tf/allow-shared-ip: 192.168.5.9 <1>
+  name: myapp-svc
+  namespace: default
+spec:
+  clusterIP: 10.43.245.81
+  externalTrafficPolicy: Cluster <2>
+  ports:
+  - nodePort: 31714
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: myapp
+  sessionAffinity: None
+  type: LoadBalancer
+----
+
+<1> 指定共享外部IP，而不是从MetalLB中IP地址池中取
+<2> service.spec.externalTrafficPolicy=Cluster -> 将流量分配到服务中的所有Pod。service.spec.externalTrafficPolicy=Local -> 将流量发送到同一节点上的服务的pod
+
+=== `nginx+dns+ingress` 版本架构
+
+nginx -> dns -> ingress-nginx -> service -> pod
+
+image::./README/2021-05-14_17-41-04.png[align="center"]
+
+- 引用
+
+https://www.yuque.com/crabluo/k8s/ynuw6s
+
+https://kubernetes.io/docs/concepts/services-networking/connect-applications-service/
+
+https://blog.csdn.net/weixin_45191791/article/details/109956817
+
+- 组件
+
+[width="100%",options="header"]
+|====================
+| 组件 | 版本 | 发布时间
+| kubernetes | 1.16.6 | 2020-01-22
+| etcd | 3.4.3 | 2019-10-24
+| containerd | 1.3.3 | 2020-02-07
+| runc | 1.0.0-rc10 | 2019-12-23
+| calico | 3.12.0 | 2020-01-27
+| coredns | 1.6.6 | 2019-12-20
+| dashboard | v2.0.0-rc4 | 2020-02-06
+| k8s-prometheus-adapter | 0.5.0 | 2019-04-03
+| prometheus-operator | 0.35.0 | 2020-01-13
+| prometheus | 2.15.2 | 2020-01-06
+| elasticsearch、kibana | 7.2.0 | 2019-06-25
+| cni-plugins | 0.8.5 | 2019-12-20
+| metrics-server | 0.3.6 | 2019-10-15
+|====================
+
+==== 安装 `Ingress-Nginx`
+
+Ingress-Nginx 是从 Nginx 改造来的，而不是传统的Nginx。
+
+Ingress-Nginx官网地址
+
+https://kubernetes.github.io/ingress-nginx/
+Ingress-Nginx GitHub地址
+
+https://github.com/kubernetes/ingress-nginx
+
+[source,sh]
+----
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v0.46.0/deploy/static/provider/baremetal/deploy.yaml
+wget https://github.com/kubernetes/ingress-nginx/archive/nginx-0.30.0.tar.gz
+tar xf nginx-0.30.0.tar.gz
+cp -a ingress-nginx-nginx-0.30.0/deploy/static/mandatory.yaml ./
+vi mandatory.yaml
+kubectl apply -f mandatory.yaml
+kubectl get ingress -n ingress-nginx -o wide
+kubectl get pod -n ingress-nginx -o wide
+kubectl apply -f hello.yaml
+kubectl get hello -o wide
+kubectl get pod -o wide --show-labels
+kubectl delete -f hello.yaml
+kubectl get svc -o wide
+----
+
+==== 安装堡垒机的 `nginx`
+
+[source,]
+----
+for node_ip in ${NODE_IPS[@]}
+  do
+    echo ">>> ${node_ip}"
+    ssh root@${node_ip} "mkdir -p /opt/k8s/k8s-nginx/{conf,logs,sbin}"
+    scp /opt/k8s/work/nginx-1.15.3/nginx-http/sbin/nginx  root@${node_ip}:/opt/k8s/k8s-nginx/sbin/k8s-nginx
+    ssh root@${node_ip} "chmod a+x /opt/k8s/k8s-nginx/sbin/*"
+  done
+  
+cat > k8s-nginx.conf <<EOF
+EOF
+  
+cat > k8s-nginx.conf << \EOF
+worker_processes 1;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    default_type  application/octet-stream;
+    keepalive_timeout  65;
+    server {
+        listen       9090;
+        server_name  127.0.0.1;
+		location '/' {
+            proxy_pass hello-example.org;
+        }
+    }
+}
+EOF
+
+
+for node_ip in ${NODE_IPS[@]}
+  do
+    echo ">>> ${node_ip}"
+    scp k8s-nginx.conf  root@${node_ip}:/opt/k8s/k8s-nginx/conf/k8s-nginx.conf
+  done
+  
+  
+cat > k8s-nginx.service <<EOF
+[Unit]
+Description=k8s nginx proxy
+After=network.target
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=forking
+ExecStartPre=/opt/k8s/k8s-nginx/sbin/k8s-nginx -c /opt/k8s/k8s-nginx/conf/k8s-nginx.conf -p /opt/k8s/k8s-nginx -t
+ExecStart=/opt/k8s/k8s-nginx/sbin/k8s-nginx -c /opt/k8s/k8s-nginx/conf/k8s-nginx.conf -p /opt/k8s/k8s-nginx
+ExecReload=/opt/k8s/k8s-nginx/sbin/k8s-nginx -c /opt/k8s/k8s-nginx/conf/k8s-nginx.conf -p /opt/k8s/k8s-nginx -s reload
+PrivateTmp=true
+Restart=always
+RestartSec=5
+StartLimitInterval=0
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+
+for node_ip in ${NODE_IPS[@]}
+  do
+    echo ">>> ${node_ip}"
+    scp k8s-nginx.service  root@${node_ip}:/etc/systemd/system/
+  done
+  
+systemctl daemon-reload && systemctl enable k8s-nginx && systemctl restart k8s-nginx
+----
+
+=== `frps+frpc穿透代理` 版本架构
+
+frps -> frpc -> service -> pod
+
+image::./README/2021-05-14_23-36-04.png[align="center"]
+
+=== 版本对比
+
+[width="100%",options="header"]
+|====================
+| 搭建 | 维护 | 性能
+| 各有优缺 | 各有优缺 | frp优于ingress,ingress优于metallb
+|====================
+
+相同 k8s 环境，用 jemeter 并发 500 压测，请求迟延越大，性能越差。
+
+image::./README/2021-05-15_16-15-17.png[align="center"]
+
+[source,yaml]
+----
+cat > frpc31-deploy.yaml <<EOF
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frpc31
+  labels:
+    app: frpc31
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frpc31
+  template:
+    metadata:
+      labels:
+        app: frpc31
+    spec:
+      containers:
+      - image: 192.168.41.32/test/frpc31:0.0.1
+        name: frpc31
+EOF
+----
+
+[source,sh]
+----
+kubectl create -f frpc31-deploy.yaml
+----
 
 - `ansible` 方式 - https://faun.pub/how-to-create-your-own-kubernetes-cluster-using-ansible-7c6b5c031a5d
 
@@ -216,8 +502,6 @@ state = "${CONTAINERD_DIR}/state"
 
 注册端 -> 拉取镜像的服务器。
 
-**遗留问题**，`nexus` 配置了 `tls` 还是报 x509: certificate signed by unknown authority。
-
 [NOTE]
 ====
 引用 - https://blog.csdn.net/y_chen_007/article/details/97525206
@@ -231,7 +515,7 @@ state = "${CONTAINERD_DIR}/state"
 
 [plugins]
   [plugins."io.containerd.grpc.v1.cri"]
-	sandbox_image = "gcr.io/google-containers/pause:3.2"
+	sandbox_image = "gcr.io/google-containers/pause:3.2" 
     [plugins."io.containerd.grpc.v1.cri".cni]
       bin_dir = "/opt/k8s/bin"
       conf_dir = "/etc/cni/net.d"
@@ -241,15 +525,23 @@ state = "${CONTAINERD_DIR}/state"
         endpoint = ["https://192.168.41.32:8082"]
 	  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."gcr.io"]
 	    endpoint = ["https://192.168.41.32:8082"]
+	  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."k8s.gcr.io"]
+	    endpoint = ["https://192.168.41.32:8082"]
+	  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."quay.io"]
+	    endpoint = ["https://192.168.41.32:8082"]
+	  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."quay.azk8s.cn"]
+	    endpoint = ["https://192.168.41.32:8082"]
+	  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."192.168.41.32"]
+	    endpoint = ["https://192.168.41.32"]
     [plugins."io.containerd.grpc.v1.cri".registry.configs]
-      [plugins."io.containerd.grpc.v1.cri".registry.configs."docker.io".tls]
-        ca_file   = "ca.pem"
-        cert_file = "n5.pem"
-        key_file  = "n5-key.pem"
-	  [plugins."io.containerd.grpc.v1.cri".registry.configs."gcr.io".tls]
-        ca_file   = "ca.pem"
-        cert_file = "n5.pem"
-        key_file  = "n5-key.pem"
+	  [plugins."io.containerd.grpc.v1.cri".registry.configs."192.168.41.32:8082".tls]
+        ca_file   = "/etc/cert/n5/ca.pem"
+        cert_file = "/etc/cert/n5/n5.pem"
+        key_file  = "/etc/cert/n5/n5-key.pem"
+      [plugins."io.containerd.grpc.v1.cri".registry.configs."192.168.41.32".tls]
+        ca_file   = "/etc/cert/n5/ca.pem"
+        cert_file = "/etc/cert/n5/n5.pem"
+        key_file  = "/etc/cert/n5/n5-key.pem"
   [plugins."io.containerd.runtime.v1.linux"]
     shim = "containerd-shim"
     runtime = "runc"
@@ -381,99 +673,6 @@ wget https://github.com/projectcalico/calico/releases/download/v3.12.0/release-v
 
 tar -xvf release-v3.12.0.tgz
 ----
-
-=== 安装 `metallb`
-
-- 引用 - https://blog.csdn.net/textdemo123/article/details/99400237
-- https://blog.csdn.net/networken/article/details/85928369
-- https://zhuanlan.zhihu.com/p/266422557
-
--  官方文档 - https://metallb.universe.tf/tutorial/layer2/
-- 代码托管 - https://github.com/google/metallb
-
-自己搭建的k8s集群 （公有云环境除外），是没有LB能力的。MetalLB能够帮助你在kubernetes中创建LoadBalancer类型的kubernetes服务。
-
-[source,sh]
-----
-$ wget https://raw.githubusercontent.com/google/metallb/v0.7.3/manifests/metallb.yaml
-$ kubectl apply -f metallb.yaml
-$ kubectl get pod -n metallb-system  -o wide
-$ kubectl get daemonset -n metallb-system
-$ wget https://raw.githubusercontent.com/google/metallb/v0.7.3/manifests/example-layer2-config.yaml
-$ vi example-layer2-config.yaml
-----
-
-[source,sh]
-----
-kubectl get pod -n metallb-system
-----
-
-[source,yaml]
-----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  namespace: metallb-system
-  name: config
-data:
-  config: |
-    address-pools:
-    - name: default
-      protocol: layer2
-      addresses:
-      - 192.168.92.200-192.168.92.210
-----
-
-[source,sh]
-----
-kubectl apply -f example-layer2-config.yaml
-----
-
-[source,yaml]
-----
-apiVersion: v1
-kind: Service
-metadata:
-  name: nginx
-  annotations:
-    metallb.universe.tf/address-pool: 192.168.5.5-192.168.5.9 <1>
-spec:
-  ports:
-  - port: 80
-    targetPort: 80
-  selector:
-    app: nginx
-  type: LoadBalancer
-----
-
-<1> 特定池的分配
-
-[source,yaml]
-----
-apiVersion: v1
-kind: Service
-metadata:
-  annotations:
-    ...
-    metallb.universe.tf/allow-shared-ip: 192.168.5.9 <1>
-  name: myapp-svc
-  namespace: default
-spec:
-  clusterIP: 10.43.245.81
-  externalTrafficPolicy: Cluster <2>
-  ports:
-  - nodePort: 31714
-    port: 80
-    protocol: TCP
-    targetPort: 80
-  selector:
-    app: myapp
-  sessionAffinity: None
-  type: LoadBalancer
-----
-
-<1> 指定共享外部IP，而不是从MetalLB中IP地址池中取
-<2> service.spec.externalTrafficPolicy=Cluster -> 将流量分配到服务中的所有Pod。service.spec.externalTrafficPolicy=Local -> 将流量发送到同一节点上的服务的pod
 
 == 维护 `kubernetes` 环境
 
@@ -652,4 +851,77 @@ http://192.168.41.33:8080/springmvcdemo/
 [source,]
 ----
 eyJhbGciOiJSUzI1NiIsImtpZCI6IkJoUVRFR09XS0dRNGtOTWJyR29xdGM1WjNUb2RudmhtWVVzbkhCbW9CUGsifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJrdWJlLXN5c3RlbSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJkYXNoYm9hcmQtYWRtaW4tdG9rZW4tejhjcXYiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGFzaGJvYXJkLWFkbWluIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQudWlkIjoiOTk5MTg5YmQtZmJlMS00ODY2LWEyNmEtYTc3NmU1NjZhZDU1Iiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50Omt1YmUtc3lzdGVtOmRhc2hib2FyZC1hZG1pbiJ9.ifbQgR4IaF_hjXLvMKZVaZoX1roMxYwKFCYpOYHd-fOBGeWMjcFiFhC0LbNZfFhIpOMVnTGFR58_GgM3kVT053XC6cJNM8hqRHbQ-ll7PNc5310egzkm0NdvTeGCqKprlbZcLssaPYfaOqq9ADEksM9aoxCE36jadfQKoaLoPn2XXP7bkDS7ubA_cebnO3QywDbXvtR_fz91B02KJpxH_bV4kWVjysrm25StiD2cAW9Iyk6pOmGHspnDWRNT-WJ68zGolqwEf6ihD2u7jc9TfAdcPoQ3jRSsdPDxunSC9OzswCuHGBqO6OjY5Pso22rHQVrqS3anTKwF5-RjLpd9Lg
+----
+
+其他记录
+
+[source,]
+----
+cat > hello-example.yaml <<EOF
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-example
+  labels:
+    app: hello-example
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: hello-example
+  template:
+    metadata:
+      labels:
+        app: hello-example
+    spec:
+      containers:
+      - image: 192.168.41.32/test/test-jenkins:1.0.0
+        name: hello-example
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-example
+  labels:
+    app: hello-example
+spec:
+  selector:
+    app: hello-example
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 8080
+EOF
+
+kubectl apply -f hello-example.yaml
+
+kubectl get pods -o wide -l app=hello-example
+kubectl describe deployment hello-example
+
+kubectl get svc -l app=hello-example
+curl -L 10.254.157.154:8080/springmvcdemo
+
+cat > hello-example-ingress.yaml <<EOF
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata: 
+  name: hello-example
+  namespace: default
+spec: 
+  rules: 
+    - host: hello-example.org
+      http: 
+        paths: 
+        - path: /springmvcdemo/
+          backend: 
+            serviceName: hello-example
+            servicePort: 8080
+EOF
+
+kubectl create -f hello-example-ingress.yaml
+kubectl delete -f hello-example-ingress.yaml
+kubectl describe ingress hello-example
+curl -L hello-example.org/b/springmvcdemo
 ----
