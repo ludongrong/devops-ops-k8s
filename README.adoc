@@ -13,8 +13,6 @@ Author 卢冬榕
 
 `CICD` 是持续集成（Continuous Integration）和持续部署（Continuous Deployment）的简称。CD还有一层 Continuous Delivery 持续交付的意思。
 
-image::./README/2021-05-17_17-37-25.png[align="center"]
-
 === `CICD` 的持续集成
 
 `持续集成` 指的是当代码有变更时，立即进行 `构建` 和 `测试`，反馈运行结果，我们可以根据测试结果，**确定新代码是否可以和原有代码正确的集成在一起**。
