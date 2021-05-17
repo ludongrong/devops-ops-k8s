@@ -11,11 +11,13 @@ Author 卢冬榕
 
 == `CICD` 是什么？
 
-CICD 是 持续集成（Continuous Integration）和持续部署（Continuous Deployment）的简称。Continuous Delivery 是持续交付的意思。
+`CICD` 是持续集成（Continuous Integration）和持续部署（Continuous Deployment）的简称。CD还有一层 Continuous Delivery 持续交付的意思。
+
+image::./README/2021-05-17_17-37-25.png[align="center"]
 
 === `CICD` 的持续集成
 
-`持续集成` 指的是当代码有变更时，立即进行 `构建` 和 `测试`，反馈运行结果，我们可以根据测试结果，**确定新代码是否可以和原有代码正确的集成在一起**。让你能够在开发中随时发现问题，在快速的产品迭代中还可以保持很高的质量。因为修复问题的成本随着时间的推移而增长，越早发现，修复成本越低。
+`持续集成` 指的是当代码有变更时，立即进行 `构建` 和 `测试`，反馈运行结果，我们可以根据测试结果，**确定新代码是否可以和原有代码正确的集成在一起**。
 
 === `CICD` 的持续部署
 
@@ -27,8 +29,16 @@ CICD 是 持续集成（Continuous Integration）和持续部署（Continuous De
 
 [NOTE]
 ====
-所谓的持续，就是说每完成一个完整的部分，就向下个环节交付，发现问题可以马上调整。问题不会放大到其他部分和后面的环节。
+持续的中文意思是延续不断。就是说每完成一个环节，就自动向下个环节交付。
 ====
+
+=== `CICD` 的好处
+
+降低时间成本、降低出错概率。在快速的产品迭代中还可以保持很高的质量。
+
+- 时间成本的降低是相对而言，不是有了 `CICD` 就一定降低时间成本。 `CICD` 的搭建也需要时间成本，同时无形当中也拔高了人力成本。所以上不上 `CICD` 需要考虑当下和上 `CICD` 后的运维时间成本和运维复杂度。
+
+image::./README/2021-05-17_19-03-44.png[align="center"]
 
 === `CICD` 的架构
 
@@ -36,15 +46,30 @@ CICD 是 持续集成（Continuous Integration）和持续部署（Continuous De
 
 image::./README/2021-03-28_15-26-33.png[align="center"]
 
+==== 架构的实施规划
+
+image::./README/2021-05-17_21-07-29.png[align="center"]
+
+=== `CICD` 的应用场景
+
 ==== 测试环境
 
-推送代码到Gitlab -> Gitlab通知jenkins -> jenkins构建镜像(项目名-分支名-latest) -> 推送镜像到test库 -> Harbor通知jenkins镜像接收完成 -> jenkins部署应用到k8s -> 邮件通知
+推送代码到 `Gitlab` -> `Gitlab`通知 `Jenkins` -> `Jenkins` 触发构建(单元测试、代码质量、打包归档) -> 推送镜像到 `test` 库 -> `Harbor` 通知 `Jenkins` 镜像接收完成 -> `Jenkins` 把应用部署到 `k8s` -> 邮件通知
 
-下环境依赖于上环节，环环相扣。初始版本不要用latest，统一用0.0.1（k8s拉取问题、字面意思问题）。
+[NOTE]
+====
+镜像命名规则 -> 项目名-分支名-版本名。测试环境初始版本镜像命名不要用latest，统一用0.0.1（k8s拉取问题、字面意思问题）。
+====
 
 ==== 正式环境
 
-代码端打标签标注版本信息。
+正式环境的升级工作只能**手动触发**或**定时触发**。预生产环境的构建和部署可以联动，生产环境的构建和部署推荐断开。
+
+`Jenkins` 触发构建 -> 获取最近代码版本(Tag) -> 开始构建(单元测试、代码质量、打包归档) -> 推送镜像到 `official` 库 -> `Harbor` 通知 `Jenkins` 镜像接收完成 -> `Jenkins` 把应用部署或更新到 `k8s` -> 邮件通知
+
+===== 注意点
+
+- 代码端需要打标签标注版本信息，既然要升级就要有版本的字面意思。
 
 [source,]
 ----
@@ -52,20 +77,27 @@ git tag -a 0.0.3 -m '升级'
 git push origin --tags
 ----
 
-正式环境的升级工作只能手动触发或定时触发。
+- 相同版本号，就算把 `k8s` 的拉取策略设置为 `always`，`k8s` 也不会重新拉取镜像。
 
-jenkins触发 -> 获取代码tag -> 构建(项目名-分支名-版本名) -> 推送镜像到official库 -> Harbor通知jenkins镜像接收完成 -> jenkins部署或更新应用到k8s -> 邮件通知
+==== 其他构建场景
 
-[source,]
-----
-相同版本号，k8s不会重新拉取镜像。
-----
+- 构建最新版本的应用
 
-强制部署指定版本应用。
+`Jenkins` 触发构建 -> 获取最近代码版本(Tag) -> 开始构建(单元测试、代码质量、打包归档) -> 推送镜像到 `official` 库 -> 邮件通知。
 
-jenkins部署或更新应用到k8s -> 邮件通知。指定版本的镜像必须先存在。
+- 构建指定版本的应用
 
-jenkins -> 构建(k8s 部署或升级应用) -> 邮件通知
+`Jenkins` 触发构建 -> 获取最近代码版本(Tag) -> 开始构建(单元测试、代码质量、打包归档) -> 推送镜像到 `official` 库 -> 邮件通知。
+
+==== 其他部署场景
+
+- 部署最新版本的应用
+
+`Jenkins` 把应用部署或更新到 `k8s` -> 邮件通知。镜像必须存在。
+
+- 部署指定版本的应用
+
+`Jenkins` 把应用部署或更新到 `k8s` -> 邮件通知。镜像必须存在。
 
 = CAAS
 
@@ -376,6 +408,28 @@ https://plugins.jenkins.io/email-ext/
 
 Email Extension Plugin + 
 allows you to configure every aspect of email notifications.
+
+- 引用 - https://www.cnblogs.com/imyalost/p/8781759.html
+
+- 在 `Jenkins` 上设置 `Jenkins` 的地址和管理员邮箱地址，系统管理 -> 系统设置。
+
+image::./README/2021-05-17_20-45-22.png[align="center"]
+
+- 设置 `Extended E-mail Notification`，系统管理 -> 系统设置。
+
+image::./README/2021-05-17_20-45-24.png[align="center"]
+
+- 设置邮件的模板，系统管理 -> 系统设置。
+
+image::./README/2021-05-17_20-49-55.png[align="center"]
+
+- 设置邮件的触发
+
+image::./README/2021-05-17_20-52-29.png[align="center"]
+
+- 在 `Task` 的构建后操作中配置发送邮件。
+
+image::./README/2021-05-17_20-45-23.png[align="center"]
 
 == `jenkins` 通过 `Docker` 构建项目
 
