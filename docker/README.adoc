@@ -1001,6 +1001,34 @@ $ docker build -t jdk8:fjnsn .
 docker run -i -t jdk8:fjnsn /bin/bash
 ----
 
+=== 制作 `java` 应用镜像
+
+Dockerfile
+
+[source,sh]
+----
+FROM kdvolder/jdk8
+MAINTAINER ${PROJECT_NAME}
+VOLUME /tmp
+LABEL app="${PROJECT_NAME}" version="${VERSION}" by="${PROJECT_NAME}"
+COPY ${PROJECT_NAME}.jar ${PROJECT_NAME}.jar
+EXPOSE ${TARGET_PORT}
+CMD -Xmx100m -Xms100m -jar -Duser.timezone=GMT+08 ${PROJECT_NAME}.jar
+ENTRYPOINT java
+----
+
+=== 制作 `tomcat` 应用镜像
+
+Dockerfile
+
+[source,sh]
+----
+FROM tomcat:8.5.65-jdk8-corretto
+ADD ./springmvcdemo.war /usr/local/tomcat/webapps/
+EXPOSE 8080
+CMD ["/usr/local/tomcat/bin/catalina.sh","run"]
+----
+
 === 制作 `maven` 镜像
 
 ==== 以 `maven:3.6.3-jdk-8` 为基础
@@ -1157,6 +1185,8 @@ CMD ["frpc","-c", "/usr/share/frp/config/frpc_min.ini"]
 docker build -t 192.168.41.32/test/frp:0.0.1 .
 ----
 
+[source,sh]
+----
 docker run -itd --name frps-31-9090-0 \
   -p 9090:9090 \
   -p 9091:9091 \
@@ -1166,14 +1196,19 @@ docker run -itd --name frps-31-9090-0 \
 docker run -itd --name frpc-31-9090-9091 \
   192.168.41.32/test/frp:0.0.1
   
-docker push 192.168.41.32/test/frp:0.0.1
-
+Docker run -e "FRP_SERVER_ADDR=192.168.41.31" -e "FRP_SERVER_PORT=9090" myimage
 
 export FRP_SERVER_ADDR="192.168.41.31"
 export FRP_SERVER_PORT="9090"
 ./frps -c /opt/frp/frps_min.ini
+----
 
-Docker run -e "FRP_SERVER_ADDR=192.168.41.31" -e "FRP_SERVER_PORT=9090" myimage
+[source,sh]
+----
+docker push 192.168.41.32/test/frp:0.0.1
+
+docker rmi 192.168.41.32/test/frp:0.0.1
+----
 
 == 使用镜像
 

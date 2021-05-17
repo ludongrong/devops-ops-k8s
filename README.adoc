@@ -36,6 +36,37 @@ CICD 是 持续集成（Continuous Integration）和持续部署（Continuous De
 
 image::./README/2021-03-28_15-26-33.png[align="center"]
 
+==== 测试环境
+
+推送代码到Gitlab -> Gitlab通知jenkins -> jenkins构建镜像(项目名-分支名-latest) -> 推送镜像到test库 -> Harbor通知jenkins镜像接收完成 -> jenkins部署应用到k8s -> 邮件通知
+
+下环境依赖于上环节，环环相扣。初始版本不要用latest，统一用0.0.1（k8s拉取问题、字面意思问题）。
+
+==== 正式环境
+
+代码端打标签标注版本信息。
+
+[source,]
+----
+git tag -a 0.0.3 -m '升级'
+git push origin --tags
+----
+
+正式环境的升级工作只能手动触发或定时触发。
+
+jenkins触发 -> 获取代码tag -> 构建(项目名-分支名-版本名) -> 推送镜像到official库 -> Harbor通知jenkins镜像接收完成 -> jenkins部署或更新应用到k8s -> 邮件通知
+
+[source,]
+----
+相同版本号，k8s不会重新拉取镜像。
+----
+
+强制部署指定版本应用。
+
+jenkins部署或更新应用到k8s -> 邮件通知。指定版本的镜像必须先存在。
+
+jenkins -> 构建(k8s 部署或升级应用) -> 邮件通知
+
 = CAAS
 
 == `CAAS` 是什么？
@@ -336,6 +367,15 @@ image::./README/2021-05-07_13-38-16.png[align="center"]
 - 选择凭据 `Credentials` ，如果未插件，则新插件一个 `Credentials`。 `Credentials` 的类型有 `Username with password` 或 `X.509 Client Certificate`
 
 image::./README/2021-05-07_13-43-11.png[align="center"]
+
+=== `jenkins` 使用 `邮件通知`
+
+登录 Jenkins 安装 Email Extension Plugin 插件，系统管理 → 管理插件。
+
+https://plugins.jenkins.io/email-ext/
+
+Email Extension Plugin + 
+allows you to configure every aspect of email notifications.
 
 == `jenkins` 通过 `Docker` 构建项目
 
