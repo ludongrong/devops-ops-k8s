@@ -1216,13 +1216,31 @@ docker rmi 192.168.41.32/test/frp:0.0.1
 
 https://hub.docker.com/_/redis
 
+redis.conf
+
+[source,]
+----
+# bind 127.0.0.1
+protected-mode no
+----
+
 [source,sh]
 ----
 docker search redis
 docker pull redis:latest
+
+mkdir -p /opt/n5/redis/bin/redis-4.0.2/conf
+chown -R 200 /opt/n5/redis/bin/redis-4.0.2/conf
+mkdir -p /opt/n5/redis/bin/redis-4.0.2/data
+chown -R 200 /opt/n5/redis/bin/redis-4.0.2/data
+
+
 docker run -itd --name redis-test \
   -p 6379:6379 \
-  redis
+  -v /opt/n5/redis/bin/redis-4.0.2/data:/data \
+  -v /opt/n5/redis/bin/redis-4.0.2/conf:/usr/local/etc/redis \
+  redis:4.0.2 /usr/local/etc/redis/redis.conf
+
 docker ps
 docker exec -it redis-test /bin/bash
 ----
