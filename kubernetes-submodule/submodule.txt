@@ -1,2 +1,0 @@
-https://github.com/opsnull/follow-me-install-kubernetes-cluster.git
-https://github.com/ctienshi/kubernetes-ansible

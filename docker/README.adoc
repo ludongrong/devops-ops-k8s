@@ -1301,10 +1301,16 @@ https://hub.docker.com/_/tomcat
 docker search tomcat
 docker pull tomcat
 docker images|grep tomcat
-docker run --name tomcat \
-  -p 8080:8080 \ <1>
-  -v $PWD/test:/usr/local/tomcat/webapps/test \ <2>
-  -d tomcat
+
+
+mkdir -p /opt/n5/tomcat/bin/8.5.65-jdk8-corretto/data
+chown -R 200 /opt/n5/tomcat/bin/8.5.65-jdk8-corretto/data
+
+
+docker run --name tomcat-test \
+  -p 8085:8080 \ <1>
+  -v /opt/n5/tomcat/bin/8.5.65-jdk8-corretto/data:/usr/local/tomcat/webapps \ <2>
+  -d tomcat:8.5.65-jdk8-corretto
 ----
 
 <1> 将容器的 8080 端口映射到主机的 8080 端口。
